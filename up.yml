@@ -1,0 +1,63 @@
+---
+- name: Setup and test MySQL database
+  hosts: localhost
+  become: true
+
+  vars:
+    db_user: root
+    sql_file: /workspaces/DBAssignment5/create_db_schema.sql
+    order_sql_file: /workspaces/DBAssignment5/order_table.sql
+    csv_loader_script: /workspaces/DBAssignment5/scripts/load_csv.py
+    scalar_test_script: /workspaces/DBAssignment5/scripts/scalar_tests.py
+    text_search_script: /workspaces/DBAssignment5/scripts/full_text_search.py
+    index_benchmark_script: /workspaces/DBAssignment5/scripts/performance_index_benchmark.py
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - mysql-server
+          - python3-pip
+          - python3-setuptools
+        state: present
+        update_cache: yes
+
+    - name: Install required Python packages from requirements.txt
+      pip:
+        requirements: /workspaces/DBAssignment5/requirements.txt
+
+    - name: Start MySQL service
+      service:
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Create MySQL database using .sql file
+      shell: mysql -u {{ db_user }} < {{ sql_file }}
+      args:
+        executable: /bin/bash
+    
+    - name: Create Order table using .sql file
+      shell: mysql -u {{ db_user }} < {{ order_sql_file }}
+      args:
+        executable: /bin/bash
+
+    - name: Load CSV data using Python script
+      shell: python3 {{ csv_loader_script }}
+      args:
+        executable: /bin/bash
+
+    - name: Run index performance benchmark script (before and after index creation)
+      shell: python3 {{ index_benchmark_script }}
+      args:
+        executable: /bin/bash
+
+    - name: Run scalar field tests
+      shell: python3 {{ scalar_test_script }}
+      args:
+        executable: /bin/bash
+
+    - name: Run full-text search tests
+      shell: python3 {{ text_search_script }}
+      args:
+        executable: /bin/bash
